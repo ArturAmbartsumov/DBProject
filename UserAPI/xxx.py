@@ -1,3 +1,8 @@
+
+##########################################
+# Всякий хлам, не используемый в проекте #
+##########################################
+
 def create(request):
 	if request.method != 'POST': return HttpResponseJSONFailure("Method POST is expected")
 	print 5555555
@@ -22,3 +27,59 @@ def create(request):
 	cursor.execute("SELECT * FROM users WHERE email=%s", [email])
 	return HttpResponseJSONSuccess(dictfetchall(cursor))
 	return HttpResponseJSONSuccess(json.dumps(request_data))
+
+{u'code': 0, 
+u'response': 
+
+  [{u'username': u'user2', 
+	u'about': u'hello im user2', 
+	u'name': u'John', 
+	u'subscriptions': [1], 
+	u'id': 2, 
+	u'followers': [u'user3@mail.ru', u'user4@mail.ru'], 
+	u'following': [u'user1@mail.ru', u'user5@mail.ru'], 
+	u'isAnonymous': 0, 
+	u'email': u'user2@mail.ru'}, 
+
+   {u'username': u'user4', 
+    u'about': u'hello im user4', 
+    u'name': u'John', 
+    u'subscriptions': [1], 
+    u'id': 4, 
+    u'followers': [], 
+    u'following': [u'user1@mail.ru', u'user2@mail.ru'], 
+    u'isAnonymous': 0, 
+    u'email': u'user4@mail.ru'}, 
+
+   {u'username': u'user3', 
+    u'about': u'hello im user3', 
+    u'name': u'John', 
+    u'subscriptions': [1], u'id': 3, 
+    u'followers': [u'user1@mail.ru'], 
+    u'following': [u'user1@mail.ru', u'user2@mail.ru'], 
+    u'isAnonymous': 0, u'email': 
+    u'user3@mail.ru'}
+  ]
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

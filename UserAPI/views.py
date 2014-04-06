@@ -32,4 +32,24 @@ def details(request):
 	
 	return HttpResponseJSONSuccess(user)
 
-#def listFollowers(request)
+def listFollowers(request):
+	if request.method != 'GET' : return HttpResponseJSONFailure("Method GET is expected")
+
+	request_data = request.GET
+
+	user_listFollowers = dbService.userFollowList(request_data, 'followers')
+	if user_listFollowers['err'] != 0: return HttpResponseJSONFailure(user_listFollowers['err'])
+	followersList = user_listFollowers['followList']
+	
+	return HttpResponseJSONSuccess(followersList)
+
+def listFollowing(request):
+	if request.method != 'GET' : return HttpResponseJSONFailure("Method GET is expected")
+
+	request_data = request.GET
+
+	user_listFollowing = dbService.userFollowList(request_data, 'following')
+	if user_listFollowing['err'] != 0: return HttpResponseJSONFailure(user_listFollowing['err'])
+	followingList = user_listFollowing['followList']
+	
+	return HttpResponseJSONSuccess(followingList)
