@@ -5,7 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from django.db import connection
 from django.db import transaction
-from UserAPI.functions import dictfetchall, HttpResponseJSONSuccess, HttpResponseJSONFailure, transformToList
+from Forum.dbService.functions import *
 
 def userCreate(request_data):
 	try: 
@@ -14,7 +14,7 @@ def userCreate(request_data):
 		name = request_data['name']
 		email = request_data['email']
 	except KeyError as e:
-		return {'err': str(e)}
+		return {'err': str(e) + ' argument not found'}
 	isAnonymous = request_data.get('isAnonymous', False)
 
 	cursor = connection.cursor()
@@ -35,35 +35,76 @@ def userDetails(request_data):
 	try:
 		email = request_data['user']
 	except KeyError as e:
-		return {'err': str(e)}
+		return {'err': str(e) + ' argument not found'}
 
 	get_user = getUser(email)
 	if get_user['err'] != 0: return {'err': get_user['err']}
 	user = get_user['user']
 
-	get_followers = getFollowersEmails(user['id'])
-	if get_followers['err'] != 0: return {'err': get_followers['err']}
-	followers = get_followers['followers']
+	get_fullUser = buildFullUserDetails(user)
+	if get_fullUser['err'] != 0: return {'err': get_fullUser['err']}
+	fullUser = get_fullUser['user']
 
-	get_following = getFollowingEmails(user['id'])
-	if get_following['err'] != 0: return {'err': get_following['err']}
-	following = get_following['followers']
+	return {'err': 0, 'user': fullUser}
 
-	get_subscriptions = getSubscriptionsID(user['id'])
-	if get_subscriptions['err'] != 0: return {'err': get_subscriptions['err']}
-	subscriptions = get_subscriptions['subscriptions']
+def userFollow(request_data, dropOrSet):
+	try:
+		emailFollower = request_data['follower']
+		emailFollowee = request_data['followee']
+	except KeyError as e:
+		return {'err': str(e) + ' argument not found'}
 
-	user['followers'] = followers
-	user['following'] = following
-	user['subscriptions'] = subscriptions
+	get_Follower = getUser(emailFollower)
+	if get_Follower['err'] != 0: return {'err': get_Follower['err']}
+	user = get_Follower['user']
+
+	get_FolloweeID = getIDByEmail(emailFollowee)
+	if get_FolloweeID['err'] != 0: return {'err': get_FolloweeID['err']}
+	followeeID = get_FolloweeID['user_id']
+
+	if dropOrSet == 'set': err = setFollow(user['id'], followeeID)
+	if dropOrSet == 'drop': err = dropFollow(user['id'], followeeID)
+	if err['err'] != 0: return {'err': err['err']}
+
+	get_fullUser = buildFullUserDetails(user)
+	if get_fullUser['err'] != 0: return {'err': get_fullUser['err']}
+	fullUser = get_fullUser['user']
+
+	return {'err': 0, 'user': fullUser}
+
+def userUpdateProfile(request_data):
+	try:
+		about = request_data['about']
+		email = request_data['user']
+		name = request_data['name']
+	except KeyError as e:
+		return {'err': str(e) + ' argument not found'}
+
+	err = updateUser({'name': name, 'about': about, 'email': email})
+	if err['err'] != 0: return {'err': err['err']}
+
+	user_details = userDetails({'user': email})
+	if user_details['err'] != 0: return {'err': user_details['err']}
+	user = user_details['user']
 
 	return {'err': 0, 'user': user}
+
+def updateUser(data):
+	cursor = connection.cursor()
+	try:
+		with transaction.atomic():
+			cursor.execute("UPDATE Users " +\
+						   "SET name = %s, about = %s " +\
+						   "WHERE email = %s", [data['name'], data['about'], data['email']])
+	except IntegrityError as e:
+		return {'err': str(e)}
+	return {'err': 0}
 
 def userFollowList(request_data, followersOrFollowing):
 	try: 
 		email = request_data['user']
 	except KeyError as e:
-		return {'err': str(e)}
+		return {'err': str(e) + ' argument not found'}
 	limit = request_data.get('limit', 10000)
 	order = request_data.get('order', 'desc')
 	since_id = request_data.get('since_id', 0)
@@ -80,21 +121,9 @@ def userFollowList(request_data, followersOrFollowing):
 	followList = get_follow['followList']
 	
 	for user in followList:
-		get_followers = getFollowersEmails(user['id'])
-		if get_followers['err'] != 0: return {'err': get_followers['err']}
-		followers = get_followers['followers']
-
-		get_following = getFollowingEmails(user['id'])
-		if get_following['err'] != 0: return {'err': get_following['err']}
-		following = get_following['followers']
-
-		get_subscriptions = getSubscriptionsID(user['id'])
-		if get_subscriptions['err'] != 0: return {'err': get_subscriptions['err']}
-		subscriptions = get_subscriptions['subscriptions']
-
-		user['followers'] = followers
-		user['following'] = following
-		user['subscriptions'] = subscriptions
+		get_fullUser = buildFullUserDetails(user)
+		if get_fullUser['err'] != 0: return {'err': get_fullUser['err']}
+		user = get_fullUser['user']
 
 	return {'err': 0, 'followList': followList}
 
@@ -178,6 +207,28 @@ def getSubscriptionsID(user_id):
 		return {'err': str(e)}
 	return {'err': 0, 'subscriptions': transformToList(cursor.fetchall())}
 
+def setFollow(follower_id, followee_id):
+	cursor = connection.cursor()
+	try:
+		with transaction.atomic():
+			cursor.execute("INSERT INTO Followers (user_id, follower_id)" +\
+						   "VALUES (%s, %s)", [followee_id, follower_id])
+	except IntegrityError as e:
+		return {'err': str(e)}
+	return {'err': 0}
+
+def dropFollow(follower_id, followee_id):
+	cursor = connection.cursor()
+	try:
+		with transaction.atomic():
+			cursor.execute("DELETE FROM Followers " +\
+						   "WHERE user_id = %s AND follower_id = %s", [followee_id, follower_id])
+		print cursor.rowcount
+	except IntegrityError as e:
+		return {'err': str(e)}
+	if cursor.rowcount == 0: return {'err': 'Follow not found'}
+	return {'err': 0}
+
 def getIDByEmail(email):
 	cursor = connection.cursor()
 	try:
@@ -199,7 +250,24 @@ def getUser(email):
 	if cursor.rowcount != 1: return {'err': "User whith email = " + email + " not found"}
 	return {'err': 0, 'user': dictfetchall(cursor)[0]}
 
+def buildFullUserDetails(user):
+	get_followers = getFollowersEmails(user['id'])
+	if get_followers['err'] != 0: return {'err': get_followers['err']}
+	followers = get_followers['followers']
 
+	get_following = getFollowingEmails(user['id'])
+	if get_following['err'] != 0: return {'err': get_following['err']}
+	following = get_following['followers']
+
+	get_subscriptions = getSubscriptionsID(user['id'])
+	if get_subscriptions['err'] != 0: return {'err': get_subscriptions['err']}
+	subscriptions = get_subscriptions['subscriptions']
+
+	user['followers'] = followers
+	user['following'] = following
+	user['subscriptions'] = subscriptions
+	
+	return {'err': 0, 'user': user}
 
 
 
