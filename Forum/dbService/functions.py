@@ -12,13 +12,6 @@ def dictfetchall(cursor):
 	]
 	return arr
 
-def dictfetchall1(cursor):
-    desc = cursor.description
-    return [
-        dict(zip([col[0] for col in desc], row))
-        for row in cursor.fetchall()
-    ]
-
 def transformToList(result):
 	b = []
 	for a in result:
@@ -33,3 +26,12 @@ def HttpResponseJSONSuccess(response_data):
 def HttpResponseJSONFailure(response_data):
 	r = {'code' : 1, 'response' : response_data}
 	return HttpResponse(json.dumps(r), content_type="javascript/json")
+
+def sendQuery(query, arg):
+	cursor = connection.cursor()
+	try:
+		with transaction.atomic():
+			cursor.execute(query, arg)
+	except IntegrityError as e:
+		return {'err': str(e)}
+	return {'err': 0, 'cursor': cursor}

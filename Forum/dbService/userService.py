@@ -5,6 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from django.db import connection
 from django.db import transaction
+
 from Forum.dbService.functions import *
 
 def userCreate(request_data):
@@ -17,13 +18,10 @@ def userCreate(request_data):
 		return {'err': str(e) + ' argument not found'}
 	isAnonymous = request_data.get('isAnonymous', False)
 
-	cursor = connection.cursor()
-	try:
-		with transaction.atomic():
-			cursor.execute("INSERT INTO Users (username, email, name, about, isAnonymous)" +\
+	get_cursor = sendQuery("INSERT INTO Users (username, email, name, about, isAnonymous)" +\
 						   "VALUES (%s, %s, %s, %s, %s)", [username, email, name, about, isAnonymous])
-	except IntegrityError as e:
-		return {'err': str(e)}
+	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	cursor = get_cursor['cursor']
 	
 	get_user = getUser(email)
 	if get_user['err'] != 0: return {'err': get_user['err']}
@@ -90,14 +88,11 @@ def userUpdateProfile(request_data):
 	return {'err': 0, 'user': user}
 
 def updateUser(data):
-	cursor = connection.cursor()
-	try:
-		with transaction.atomic():
-			cursor.execute("UPDATE Users " +\
-						   "SET name = %s, about = %s " +\
+	get_cursor = sendQuery("UPDATE Users SET name = %s, about = %s " +\
 						   "WHERE email = %s", [data['name'], data['about'], data['email']])
-	except IntegrityError as e:
-		return {'err': str(e)}
+	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	cursor = get_cursor['cursor']
+
 	return {'err': 0}
 
 def userFollowList(request_data, followersOrFollowing):
@@ -129,126 +124,137 @@ def userFollowList(request_data, followersOrFollowing):
 
 
 def getFollowers(data):
-	cursor = connection.cursor()
-	try:
-		with transaction.atomic():
-			if data['order'] == 'desc':
-				cursor.execute("SELECT id, username, email, name, about, isAnonymous " +\
+	if data['order'] == 'desc':
+		get_cursor = sendQuery("SELECT id, username, email, name, about, isAnonymous " +\
 							   "FROM Users, (" +\
 							       "SELECT follower_id FROM Followers WHERE user_id = %s AND follower_id >= %s" +\
 							   ") AS T " +\
 							   "WHERE Users.id = T.follower_id " +\
 							   "ORDER BY Users.name desc " +\
 							   "LIMIT %s", [data['user_id'], data['since_id'], data['limit']])
-			if data['order'] == 'asc':
-				cursor.execute("SELECT id, username, email, name, about, isAnonymous " +\
+		if get_cursor['err'] != 0: return {'err': get_user['err']}
+		cursor = get_cursor['cursor']
+
+	if data['order'] == 'asc':
+		get_cursor = sendQuery("SELECT id, username, email, name, about, isAnonymous " +\
 							   "FROM Users, (" +\
 							       "SELECT follower_id FROM Followers WHERE user_id = %s AND follower_id >= %s" +\
 							   ") AS T " +\
 							   "WHERE Users.id = T.follower_id " +\
 							   "ORDER BY Users.name asc " +\
 							   "LIMIT %s", [data['user_id'], data['since_id'], data['limit']])
-	except IntegrityError as e:
-		return {'err': str(e)}
+		if get_cursor['err'] != 0: return {'err': get_user['err']}
+		cursor = get_cursor['cursor']
+	
 	return {'err': 0, 'followList': dictfetchall(cursor)}
 
 def getFollowing(data):
-	cursor = connection.cursor()
-	try:
-		with transaction.atomic():
-			if data['order'] == 'desc':
-				cursor.execute("SELECT id, username, email, name, about, isAnonymous " +\
+	if data['order'] == 'desc':
+		get_cursor = sendQuery("SELECT id, username, email, name, about, isAnonymous " +\
 							   "FROM Users, (" +\
 							       "SELECT user_id FROM Followers WHERE follower_id = %s AND user_id >= %s" +\
 							   ") AS T " +\
 							   "WHERE Users.id = T.user_id " +\
 							   "ORDER BY Users.name desc " +\
 							   "LIMIT %s", [data['user_id'], data['since_id'], data['limit']])
-			if data['order'] == 'asc':
-				cursor.execute("SELECT id, username, email, name, about, isAnonymous " +\
+		if get_cursor['err'] != 0: return {'err': get_user['err']}
+		cursor = get_cursor['cursor']
+
+	if data['order'] == 'asc':
+		get_cursor = sendQuery("SELECT id, username, email, name, about, isAnonymous " +\
 							   "FROM Users, (" +\
 							       "SELECT follower_id FROM Followers WHERE user_id = %s AND follower_id >= %s" +\
 							   ") AS T " +\
 							   "WHERE Users.id = T.follower_id " +\
 							   "ORDER BY Users.name asc " +\
 							   "LIMIT %s", [data['user_id'], data['since_id'], data['limit']])
-	except IntegrityError as e:
-		return {'err': str(e)}
+		if get_cursor['err'] != 0: return {'err': get_user['err']}
+		cursor = get_cursor['cursor']
 	return {'err': 0, 'followList': dictfetchall(cursor)}
 
 def getFollowersEmails(user_id):
-	cursor = connection.cursor()
-	try:
-		with transaction.atomic():
-			cursor.execute("SELECT Users.email AS emails FROM Users, " +\
+	get_cursor = sendQuery("SELECT Users.email AS emails FROM Users, " +\
 						   "(SELECT follower_id FROM Followers WHERE user_id = %s) AS T " +\
 						   "WHERE Users.id = T.follower_id", [user_id])
-	except IntegrityError as e:
-		return {'err': str(e)}
+	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	cursor = get_cursor['cursor']
 	return {'err': 0, 'followers': transformToList(cursor.fetchall())}
 
 def getFollowingEmails(user_id):
-	cursor = connection.cursor()
-	try:
-		with transaction.atomic():
-			cursor.execute("SELECT Users.email AS emails FROM Users, " +\
+	get_cursor = sendQuery("SELECT Users.email AS emails FROM Users, " +\
 						   "(SELECT user_id FROM Followers WHERE follower_id = %s) AS T " +\
 						   "WHERE Users.id = T.user_id", [user_id])
-	except IntegrityError as e:
-		return {'err': str(e)}
+	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	cursor = get_cursor['cursor']
 	return {'err': 0, 'followers': transformToList(cursor.fetchall())}	
 
 def getSubscriptionsID(user_id):
-	cursor = connection.cursor()
-	try:
-		with transaction.atomic():
-			cursor.execute("SELECT thread_id FROM Subscriptions WHERE user_id = %s", [user_id])
-	except IntegrityError as e:
-		return {'err': str(e)}
+	get_cursor = sendQuery("SELECT thread_id FROM Subscriptions WHERE user_id = %s", [user_id])
+	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	cursor = get_cursor['cursor']
 	return {'err': 0, 'subscriptions': transformToList(cursor.fetchall())}
 
 def setFollow(follower_id, followee_id):
-	cursor = connection.cursor()
-	try:
-		with transaction.atomic():
-			cursor.execute("INSERT INTO Followers (user_id, follower_id)" +\
+	get_cursor = sendQuery("INSERT INTO Followers (user_id, follower_id)" +\
 						   "VALUES (%s, %s)", [followee_id, follower_id])
-	except IntegrityError as e:
-		return {'err': str(e)}
+	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	cursor = get_cursor['cursor']
+	
 	return {'err': 0}
 
 def dropFollow(follower_id, followee_id):
-	cursor = connection.cursor()
-	try:
-		with transaction.atomic():
-			cursor.execute("DELETE FROM Followers " +\
+	get_cursor = sendQuery("DELETE FROM Followers " +\
 						   "WHERE user_id = %s AND follower_id = %s", [followee_id, follower_id])
-		print cursor.rowcount
-	except IntegrityError as e:
-		return {'err': str(e)}
+	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	cursor = get_cursor['cursor']
+	
 	if cursor.rowcount == 0: return {'err': 'Follow not found'}
 	return {'err': 0}
 
 def getIDByEmail(email):
-	cursor = connection.cursor()
-	try:
-		with transaction.atomic():
-			cursor.execute("SELECT id FROM Users WHERE email = %s", [email])
-	except IntegrityError as e:
-		return {'err': str(e)}
+	get_cursor = sendQuery("SELECT id FROM Users WHERE email = %s", [email])
+	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	cursor = get_cursor['cursor']
+	
 	if cursor.rowcount != 1: return {'err': "User whith email = " + email + " not found"}
 	users_id = transformToList(cursor.fetchall())
 	return {'err': 0, 'user_id': users_id[0]}
 
+def getEmailByID(user_id):
+	get_cursor = sendQuery("SELECT email FROM Users WHERE id = %s", [user_id])
+	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	cursor = get_cursor['cursor']
+	
+	if cursor.rowcount != 1: return {'err': "User whith ID = " + user_id + " not found"}
+	email = transformToList(cursor.fetchall())
+	return {'err': 0, 'email': email[0]}
+
 def getUser(email):
-	cursor = connection.cursor()
-	try:
-		with transaction.atomic():
-			cursor.execute("SELECT * FROM Users WHERE email=%s", [email])
-	except IntegrityError as e:
-		return {'err': str(e)}
+	get_cursor = sendQuery("SELECT * FROM Users WHERE email=%s", [email])
+	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	cursor = get_cursor['cursor']
+	
 	if cursor.rowcount != 1: return {'err': "User whith email = " + email + " not found"}
 	return {'err': 0, 'user': dictfetchall(cursor)[0]}
+
+def getUserById(user_id):
+	get_cursor = sendQuery("SELECT * FROM Users WHERE id=%s", [user_id])
+	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	cursor = get_cursor['cursor']
+	
+	if cursor.rowcount != 1: return {'err': "User whith ID = " + user_id + " not found"}
+	return {'err': 0, 'user': dictfetchall(cursor)[0]}
+
+def getUserDetailsById(user_id):
+	get_user = getUserById(user_id)
+	if get_user['err'] != 0: return {'err': get_user['err']}
+	user = get_user['user']
+
+	get_fullUser = buildFullUserDetails(user)
+	if get_fullUser['err'] != 0: return {'err': get_fullUser['err']}
+	fullUser = get_fullUser['user']
+
+	return {'err': 0, 'user': fullUser}
 
 def buildFullUserDetails(user):
 	get_followers = getFollowersEmails(user['id'])
@@ -268,6 +274,18 @@ def buildFullUserDetails(user):
 	user['subscriptions'] = subscriptions
 	
 	return {'err': 0, 'user': user}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

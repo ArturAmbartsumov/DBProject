@@ -1,10 +1,4 @@
-import json
-
-from django.db import IntegrityError
 from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse
-from django.db import connection
-from django.db import transaction
 
 from Forum.dbService.userService import *
 from Forum.dbService.functions import *
