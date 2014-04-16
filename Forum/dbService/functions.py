@@ -1,5 +1,6 @@
 import json
 
+from django.db import IntegrityError
 from django.http import HttpResponse
 from django.db import connection
 from django.db import transaction
@@ -35,3 +36,5 @@ def sendQuery(query, arg):
 	except IntegrityError as e:
 		return {'err': str(e)}
 	return {'err': 0, 'cursor': cursor}
+
+#date = datetime.datetime.strptime(date, "%Y-%m-%d %H:%M:%S")

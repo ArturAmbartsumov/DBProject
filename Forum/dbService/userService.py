@@ -7,6 +7,7 @@ from django.db import connection
 from django.db import transaction
 
 from Forum.dbService.functions import *
+from Forum.dbService.postService import *
 
 def userCreate(request_data):
 	try: 
@@ -20,7 +21,7 @@ def userCreate(request_data):
 
 	get_cursor = sendQuery("INSERT INTO Users (username, email, name, about, isAnonymous)" +\
 						   "VALUES (%s, %s, %s, %s, %s)", [username, email, name, about, isAnonymous])
-	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
 	cursor = get_cursor['cursor']
 	
 	get_user = getUser(email)
@@ -56,7 +57,7 @@ def userFollow(request_data, dropOrSet):
 	if get_Follower['err'] != 0: return {'err': get_Follower['err']}
 	user = get_Follower['user']
 
-	get_FolloweeID = getIDByEmail(emailFollowee)
+	get_FolloweeID = getUserIDByEmail(emailFollowee)
 	if get_FolloweeID['err'] != 0: return {'err': get_FolloweeID['err']}
 	followeeID = get_FolloweeID['user_id']
 
@@ -90,7 +91,7 @@ def userUpdateProfile(request_data):
 def updateUser(data):
 	get_cursor = sendQuery("UPDATE Users SET name = %s, about = %s " +\
 						   "WHERE email = %s", [data['name'], data['about'], data['email']])
-	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
 	cursor = get_cursor['cursor']
 
 	return {'err': 0}
@@ -104,7 +105,7 @@ def userFollowList(request_data, followersOrFollowing):
 	order = request_data.get('order', 'desc')
 	since_id = request_data.get('since_id', 0)
 
-	get_id = getIDByEmail(email)
+	get_id = getUserIDByEmail(email)
 	if get_id['err'] != 0: return {'err': get_id['err']}
 	user_id = get_id['user_id']
 
@@ -122,61 +123,52 @@ def userFollowList(request_data, followersOrFollowing):
 
 	return {'err': 0, 'followList': followList}
 
+def userListPosts(request_data):
+	try: 
+		user_email = request_data['user']
+	except KeyError as e:
+		return {'err': str(e) + ' argument not found'}
+	limit = request_data.get('limit', 10000)
+	order = request_data.get('order', 'desc')
+	since = request_data.get('since', '0000-00-00 00:00:00')
+
+	list_posts = getListPosts({'field': 'user_email', 'key': user_email},
+							  {'limit': limit, 'order': order, 'since': since})
+	if list_posts['err'] != 0: return {'err': list_posts['err']}
+	listPosts = list_posts['listPosts']
+	return {'err': 0, 'listPosts': listPosts}
+
+
 
 def getFollowers(data):
-	if data['order'] == 'desc':
-		get_cursor = sendQuery("SELECT id, username, email, name, about, isAnonymous " +\
-							   "FROM Users, (" +\
-							       "SELECT follower_id FROM Followers WHERE user_id = %s AND follower_id >= %s" +\
-							   ") AS T " +\
-							   "WHERE Users.id = T.follower_id " +\
-							   "ORDER BY Users.name desc " +\
-							   "LIMIT %s", [data['user_id'], data['since_id'], data['limit']])
-		if get_cursor['err'] != 0: return {'err': get_user['err']}
-		cursor = get_cursor['cursor']
-
-	if data['order'] == 'asc':
-		get_cursor = sendQuery("SELECT id, username, email, name, about, isAnonymous " +\
-							   "FROM Users, (" +\
-							       "SELECT follower_id FROM Followers WHERE user_id = %s AND follower_id >= %s" +\
-							   ") AS T " +\
-							   "WHERE Users.id = T.follower_id " +\
-							   "ORDER BY Users.name asc " +\
-							   "LIMIT %s", [data['user_id'], data['since_id'], data['limit']])
-		if get_cursor['err'] != 0: return {'err': get_user['err']}
-		cursor = get_cursor['cursor']
-	
+	get_cursor = sendQuery("SELECT id, username, email, name, about, isAnonymous " +\
+						   "FROM Users, (" +\
+						       "SELECT follower_id FROM Followers WHERE user_id = %s AND follower_id >= %s" +\
+						   ") AS T " +\
+						   "WHERE Users.id = T.follower_id " +\
+						   "ORDER BY Users.name " + data['order'] +\
+						   " LIMIT %s", [data['user_id'], data['since_id'], data['limit']])
+	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
+	cursor = get_cursor['cursor']
 	return {'err': 0, 'followList': dictfetchall(cursor)}
 
 def getFollowing(data):
-	if data['order'] == 'desc':
-		get_cursor = sendQuery("SELECT id, username, email, name, about, isAnonymous " +\
-							   "FROM Users, (" +\
-							       "SELECT user_id FROM Followers WHERE follower_id = %s AND user_id >= %s" +\
-							   ") AS T " +\
-							   "WHERE Users.id = T.user_id " +\
-							   "ORDER BY Users.name desc " +\
-							   "LIMIT %s", [data['user_id'], data['since_id'], data['limit']])
-		if get_cursor['err'] != 0: return {'err': get_user['err']}
-		cursor = get_cursor['cursor']
-
-	if data['order'] == 'asc':
-		get_cursor = sendQuery("SELECT id, username, email, name, about, isAnonymous " +\
-							   "FROM Users, (" +\
-							       "SELECT follower_id FROM Followers WHERE user_id = %s AND follower_id >= %s" +\
-							   ") AS T " +\
-							   "WHERE Users.id = T.follower_id " +\
-							   "ORDER BY Users.name asc " +\
-							   "LIMIT %s", [data['user_id'], data['since_id'], data['limit']])
-		if get_cursor['err'] != 0: return {'err': get_user['err']}
-		cursor = get_cursor['cursor']
+	get_cursor = sendQuery("SELECT id, username, email, name, about, isAnonymous " +\
+						   "FROM Users, (" +\
+						       "SELECT follower_id FROM Followers WHERE user_id = %s AND follower_id >= %s" +\
+						   ") AS T " +\
+						   "WHERE Users.id = T.follower_id " +\
+						   "ORDER BY Users.name " + data['order'] +\
+						   " LIMIT %s", [data['user_id'], data['since_id'], data['limit']])
+	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
+	cursor = get_cursor['cursor']
 	return {'err': 0, 'followList': dictfetchall(cursor)}
 
 def getFollowersEmails(user_id):
 	get_cursor = sendQuery("SELECT Users.email AS emails FROM Users, " +\
 						   "(SELECT follower_id FROM Followers WHERE user_id = %s) AS T " +\
 						   "WHERE Users.id = T.follower_id", [user_id])
-	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
 	cursor = get_cursor['cursor']
 	return {'err': 0, 'followers': transformToList(cursor.fetchall())}
 
@@ -184,20 +176,20 @@ def getFollowingEmails(user_id):
 	get_cursor = sendQuery("SELECT Users.email AS emails FROM Users, " +\
 						   "(SELECT user_id FROM Followers WHERE follower_id = %s) AS T " +\
 						   "WHERE Users.id = T.user_id", [user_id])
-	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
 	cursor = get_cursor['cursor']
 	return {'err': 0, 'followers': transformToList(cursor.fetchall())}	
 
 def getSubscriptionsID(user_id):
 	get_cursor = sendQuery("SELECT thread_id FROM Subscriptions WHERE user_id = %s", [user_id])
-	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
 	cursor = get_cursor['cursor']
 	return {'err': 0, 'subscriptions': transformToList(cursor.fetchall())}
 
 def setFollow(follower_id, followee_id):
 	get_cursor = sendQuery("INSERT INTO Followers (user_id, follower_id)" +\
 						   "VALUES (%s, %s)", [followee_id, follower_id])
-	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
 	cursor = get_cursor['cursor']
 	
 	return {'err': 0}
@@ -205,33 +197,33 @@ def setFollow(follower_id, followee_id):
 def dropFollow(follower_id, followee_id):
 	get_cursor = sendQuery("DELETE FROM Followers " +\
 						   "WHERE user_id = %s AND follower_id = %s", [followee_id, follower_id])
-	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
 	cursor = get_cursor['cursor']
 	
 	if cursor.rowcount == 0: return {'err': 'Follow not found'}
 	return {'err': 0}
 
-def getIDByEmail(email):
+def getUserIDByEmail(email):
 	get_cursor = sendQuery("SELECT id FROM Users WHERE email = %s", [email])
-	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
 	cursor = get_cursor['cursor']
 	
 	if cursor.rowcount != 1: return {'err': "User whith email = " + email + " not found"}
 	users_id = transformToList(cursor.fetchall())
 	return {'err': 0, 'user_id': users_id[0]}
 
-def getEmailByID(user_id):
+def getUserEmailByID(user_id):
 	get_cursor = sendQuery("SELECT email FROM Users WHERE id = %s", [user_id])
-	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
 	cursor = get_cursor['cursor']
 	
-	if cursor.rowcount != 1: return {'err': "User whith ID = " + user_id + " not found"}
+	if cursor.rowcount != 1: return {'err': "User whith ID = " + str(user_id) + " not found"}
 	email = transformToList(cursor.fetchall())
 	return {'err': 0, 'email': email[0]}
 
 def getUser(email):
 	get_cursor = sendQuery("SELECT * FROM Users WHERE email=%s", [email])
-	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
 	cursor = get_cursor['cursor']
 	
 	if cursor.rowcount != 1: return {'err': "User whith email = " + email + " not found"}
@@ -239,10 +231,10 @@ def getUser(email):
 
 def getUserById(user_id):
 	get_cursor = sendQuery("SELECT * FROM Users WHERE id=%s", [user_id])
-	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
 	cursor = get_cursor['cursor']
 	
-	if cursor.rowcount != 1: return {'err': "User whith ID = " + user_id + " not found"}
+	if cursor.rowcount != 1: return {'err': "User whith ID = " + str(user_id) + " not found"}
 	return {'err': 0, 'user': dictfetchall(cursor)[0]}
 
 def getUserDetailsById(user_id):

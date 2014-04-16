@@ -48,6 +48,17 @@ def listFollowing(request):
 	
 	return HttpResponseJSONSuccess(followingList)
 
+def listPosts(request):
+	if request.method != 'GET' : return HttpResponseJSONFailure("Method GET is expected")
+
+	request_data = request.GET
+
+	user_listPosts = userListPosts(request_data)
+	if user_listPosts['err'] != 0: return HttpResponseJSONFailure(user_listPosts['err'])
+	listPosts = user_listPosts['listPosts']
+	
+	return HttpResponseJSONSuccess(listPosts)
+
 @csrf_exempt
 def follow(request):
 	if request.method != 'POST': return HttpResponseJSONFailure("Method POST is expected")

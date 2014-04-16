@@ -17,7 +17,7 @@ def forumCreate(request_data):
 	except KeyError as e:
 		return {'err': str(e) + ' argument not found'}
 
-	get_id = getIDByEmail(email)
+	get_id = getUserIDByEmail(email)
 	if get_id['err'] != 0: return {'err': get_id['err']}
 	user_id = get_id['user_id']
 
@@ -37,7 +37,7 @@ def forumDetails(request_data):
 		short_name = request_data['forum']
 	except KeyError as e:
 		return {'err': str(e) + ' argument not found'}
-	related = request_data.get('related', [])
+	related = request_data.getlist('related', [])
 
 	get_forum = getForum(short_name)
 	if get_forum['err'] != 0: return {'err': get_forum['err']}
@@ -48,27 +48,82 @@ def forumDetails(request_data):
 		if get_user['err'] != 0: return {'err': get_user['err']}
 		user = get_user['user']
 	else:
-		get_user = getEmailByID(forum['user'])
+		get_user = getUserEmailByID(forum['user'])
 		if get_user['err'] != 0: return {'err': get_user['err']}
 		user = get_user['email']
 
 	forum['user'] = user
 	return {'err': 0, 'forum': forum}
 
-
 def createNewForum(data):
 	get_cursor = sendQuery("INSERT INTO Forums (name, short_name, user) " +\
 						   "VALUES (%s, %s, %s)",
 						   [data['name'], data['short_name'], data['user']])
-	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
 	cursor = get_cursor['cursor']
 	return {'err': 0}
 
+def getForumDetailsById(forum_id):
+	get_forum = getForumByID(forum_id)
+	if get_forum['err'] != 0: return {'err': get_forum['err']}
+	forum = get_forum['forum']
+
+	get_user = getUserEmailByID(forum['user'])
+	if get_user['err'] != 0: return {'err': get_user['err']}
+	user = get_user['email']
+
+	forum['user'] = user
+	return {'err': 0, 'forum': forum}
+
+
 def getForum(short_name):
 	get_cursor = sendQuery("SELECT * FROM Forums WHERE short_name=%s", [short_name])
-	if get_cursor['err'] != 0: return {'err': get_user['err']}
+	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
 	cursor = get_cursor['cursor']
 
 	if cursor.rowcount != 1: return {'err': "Forum whith short_name = " + short_name + " not found"}
 	return {'err': 0, 'forum': dictfetchall(cursor)[0]}
+
+def getForumByID(forum_id):
+	get_cursor = sendQuery("SELECT * FROM Forums WHERE id=%s", [forum_id])
+	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
+	cursor = get_cursor['cursor']
+
+	if cursor.rowcount != 1: return {'err': "Forum whith id = " + str(forum_id) + " not found"}
+	return {'err': 0, 'forum': dictfetchall(cursor)[0]}
+
+def getForumIDByShortname(short_name):
+	get_cursor = sendQuery("SELECT id FROM Forums WHERE short_name = %s", [short_name])
+	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
+	cursor = get_cursor['cursor']
+	
+	if cursor.rowcount != 1: return {'err': "Forum whith short_name = " + short_name + " not found"}
+	forum_id = transformToList(cursor.fetchall())
+	return {'err': 0, 'forum_id': forum_id[0]}
+
+def getShortnameByForumID(forum_id):
+	get_cursor = sendQuery("SELECT short_name FROM Forums WHERE id = %s", [forum_id])
+	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
+	cursor = get_cursor['cursor']
+	
+	if cursor.rowcount != 1: return {'err': "Forum whith id = " + str(forum_id) + " not found"}
+	short_name = transformToList(cursor.fetchall())
+	return {'err': 0, 'short_name': short_name[0]}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
