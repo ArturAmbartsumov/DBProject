@@ -64,6 +64,36 @@ def forumListPosts(request_data):
 	listPosts = list_posts['listPosts']
 	return {'err': 0, 'listPosts': listPosts}
 
+def forumListUsers(request_data):
+	try: 
+		forum_short_name = request_data['forum']
+	except KeyError as e:
+		return {'err': str(e) + ' argument not found'}
+	limit = request_data.get('limit', 10000)
+	order = request_data.get('order', 'desc')
+	since_id = request_data.get('since_id', 0)
+
+	list_users = Serv.getListUserInForum(forum_short_name, {'limit': limit, 'order': order, 'since_id': since_id})
+	if list_users['err'] != 0: return {'err': list_users['err']}
+	listUsers = list_users['listUsers']
+
+	return {'err': 0, 'listUsers': listUsers}
+
+def forumListThreads(request_data):
+	try: 
+		forum_short_name = request_data['forum']
+	except KeyError as e:
+		return {'err': str(e) + ' argument not found'}
+	related = request_data.getlist('related', [])
+	limit = request_data.get('limit', 10000)
+	order = request_data.get('order', 'desc')
+	since = request_data.get('since', '0000-00-00 00:00:00')
+
+	list_threads = Serv.getListThreadInForum(forum_short_name, related, {'limit': limit, 'order': order, 'since': since})
+	if list_threads['err'] != 0: return {'err': list_threads['err']}
+	listThreads = list_threads['listThreads']
+
+	return {'err': 0, 'listThreads': listThreads}
 
 def createNewForum(data):
 	get_cursor = Util.sendQuery("INSERT INTO Forums (name, short_name, user) " +\

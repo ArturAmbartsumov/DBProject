@@ -18,7 +18,6 @@ def threadCreate(request_data):
 	except KeyError as e:
 		return {'err': str(e) + ' argument not found'}
 	isDeleted = request_data.get('isDeleted', False)
-	#date = datetime.datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
 
 	get_user_id = Serv.getUserIDByEmail(user_email)
 	if get_user_id['err'] != 0: return {'err': get_user_id['err']}
@@ -119,6 +118,43 @@ def threadUpdate(request_data):
 	thread = get_threadDetails['thread']
 
 	return {'err': 0, 'thread': thread}
+
+def threadListPosts(request_data):
+	try: 
+		thread_id = request_data['thread']
+	except KeyError as e:
+		return {'err': str(e) + ' argument not found'}
+	limit = request_data.get('limit', 10000)
+	order = request_data.get('order', 'desc')
+	since = request_data.get('since', '0000-00-00 00:00:00')
+
+	list_posts = Serv.getListPosts({'field': 'thread', 'key': thread_id},
+							  {'limit': limit, 'order': order, 'since': since})
+	if list_posts['err'] != 0: return {'err': list_posts['err']}
+	listPosts = list_posts['listPosts']
+
+	return {'err': 0, 'listPosts': listPosts}
+
+def threadList(request_data):
+	print request_data
+	try: 
+		
+		if 'user' in request_data:
+			where = {'name': 'user', 'key': request_data['user']}
+
+		if 'forum' in request_data:
+			where = {'name': 'forum', 'key': request_data['forum']}
+	except KeyError as e:
+		return {'err': str(e) + ' argument not found'}
+	limit = request_data.get('limit', 10000)
+	order = request_data.get('order', 'desc')
+	since = request_data.get('since', '0000-00-00 00:00:00')
+
+	list_thread = Serv.getList('Threads', where, {'limit': limit, 'order': order, 'since': since})
+	if list_thread['err'] != 0: return {'err': list_thread['err']}
+	listThreads = list_thread['listEntity']
+
+	return {'err': 0, 'listThreads': listThreads}
 
 def threadSubscribeOrUnsubscribe(request_data, option):
 	try:

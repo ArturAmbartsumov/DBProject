@@ -135,6 +135,45 @@ print r.status_code
 #print r.text
 print r.json()
 
+payload = {'thread': '2', 'order': 'asc', 'since': '2014-04-14 21:27:34'}
+url = 'http://127.0.0.1:8000/thread/listPosts/'
+r = requests.get(url, params = payload)
+print r.status_code
+#print r.text
+print r.json()
+
+payload = {'limit': 10, 'since_id': 0, 'forum': 'forum_5', 'order': 'asc'}
+url = 'http://127.0.0.1:8000/forum/listUsers/'
+r = requests.get(url, params = payload)
+print r.status_code
+#print r.text
+print r.json()
+
+payload = {'related': ['forum', 'user'],
+		   'since': '2013-12-30 00:00:00',
+		   'limit': 1,
+		   'forum': 'forum_3',
+		   'order': 'asc'}
+url = 'http://127.0.0.1:8000/forum/listThreads/'
+r = requests.get(url, params = payload)
+print r.status_code
+#print r.text
+print r.json()
+
+payload = {'since': '2014-01-01 00:00:00', 'user': 'user1@mail.ru', 'order': 'desc'}
+url = 'http://127.0.0.1:8000/thread/list/'
+r = requests.get(url, params = payload)
+print r.status_code
+#print r.text
+print r.json()
+
+
+
+
+
+
+
+
 
 
 

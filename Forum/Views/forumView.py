@@ -36,3 +36,25 @@ def listPosts(request):
 	listPosts = forum_listPosts['listPosts']
 	
 	return HttpResponseJSONSuccess(listPosts)
+
+def listUsers(request):
+	if request.method != 'GET' : return HttpResponseJSONFailure("Method GET is expected")
+
+	request_data = request.GET
+
+	forum_listUsers = forumListUsers(request_data)
+	if forum_listUsers['err'] != 0: return HttpResponseJSONFailure(forum_listUsers['err'])
+	listUsers = forum_listUsers['listUsers']
+	
+	return HttpResponseJSONSuccess(listUsers)
+
+def listThreads(request):
+	if request.method != 'GET' : return HttpResponseJSONFailure("Method GET is expected")
+
+	request_data = request.GET
+
+	forum_listThreads = forumListThreads(request_data)
+	if forum_listThreads['err'] != 0: return HttpResponseJSONFailure(forum_listThreads['err'])
+	listThreads = forum_listThreads['listThreads']
+	
+	return HttpResponseJSONSuccess(listThreads)

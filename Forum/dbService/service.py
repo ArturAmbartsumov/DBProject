@@ -241,7 +241,6 @@ def getPostDetailsByID(post_id, related):
 	post['points'] = post['likes'] - post['dislikes']
 	return {'err': 0, 'post': post}
 
-
 def getListPosts(entity, options):
 	limit = options['limit']
 	order = options['order']
@@ -275,10 +274,11 @@ def getListPostsInForum(forum, related, options):
 	get_forum = getForumIDByShortname(forum)
 	if get_forum['err'] != 0: return {'err': get_forum['err']}
 	forum_id = get_forum['forum_id']
+
 	query = ("SELECT * FROM Posts " +\
 			"WHERE forum = %s AND Posts.date >= %s " +\
 			"ORDER BY date " + order +\
-			" LIMIT 2")
+			" LIMIT " + str(limit))
 	get_cursor = Util.sendQuery(query, [forum_id, since])
 	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
 	cursor = get_cursor['cursor']
@@ -310,4 +310,131 @@ def getListPostsInForum(forum, related, options):
 		post['points'] = post['likes'] - post['dislikes']
 		post['date'] = post['date'].strftime("%Y-%m-%d %H:%M:%S")
 	return {'err': 0, 'listPosts': listPosts}
+
+def getListUserInForum(forum_short_name, options):
+	limit = options['limit']
+	order = options['order']
+	since_id = options['since_id']
+
+	get_forum = getForumIDByShortname(forum_short_name)
+	if get_forum['err'] != 0: return {'err': get_forum['err']}
+	forum_id = get_forum['forum_id']
+
+	query = ("SELECT distinct user FROM Posts " +\
+			"WHERE forum = %s AND user >= %s " +\
+			"ORDER BY user " + order +\
+			" LIMIT " + str(limit))
+	get_cursor = Util.sendQuery(query, [forum_id, since_id])
+	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
+	cursor = get_cursor['cursor']
+	listU = Util.dictfetchall(cursor)
+
+	listUsers = []
+	for user in listU:
+		user_detaile = getUserDetailsById(user['user'])
+		if user_detaile['err'] != 0: return {'err': user_detaile['err']}
+		listUsers.append(user_detaile['user'])
+	return {'err': 0, 'listUsers': listUsers}
+
+def getListThreadInForum(forum, related, options):
+	limit = options['limit']
+	order = options['order']
+	since = options['since']
+
+	get_forum = getForumIDByShortname(forum)
+	if get_forum['err'] != 0: return {'err': get_forum['err']}
+	forum_id = get_forum['forum_id']
+
+	query = ("SELECT * FROM Threads " +\
+			"WHERE forum = %s AND date >= %s " +\
+			"ORDER BY date " + order +\
+			" LIMIT " + str(limit))
+	get_cursor = Util.sendQuery(query, [forum_id, since])
+	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
+	cursor = get_cursor['cursor']
+	listThreads = Util.dictfetchall(cursor)
+
+	for thread in listThreads:
+		if 'user' in related:
+			get_user = getUserDetailsById(thread['user'])
+			if get_user['err'] != 0: return {'err': get_user['err']}
+			user = get_user['user']
+		else:
+			get_user = getUserEmailByID(thread['user'])
+			if get_user['err'] != 0: return {'err': get_user['err']}
+			user = get_user['email']
+
+		if 'forum' in related:
+			get_forum = getForumDetailsById(thread['forum'])
+			if get_forum['err'] != 0: return {'err': get_forum['err']}
+			forum = get_forum['forum']
+
+		get_posts = getPostCountInThread(thread['id'])
+		if get_posts['err'] != 0: return {'err': get_posts['err']}
+		posts = get_posts['posts']
+
+		thread['user'] = user
+		thread['forum'] = forum
+		thread['points'] = thread['likes'] - thread['dislikes']
+		thread['posts'] = posts
+		thread['date'] = thread['date'].strftime("%Y-%m-%d %H:%M:%S")
+	return {'err': 0, 'listThreads': listThreads}
+
+def getList(entity, where, options):
+	limit = options['limit']
+	order = options['order']
+	since = options['since']
+
+	if  where['name'] == 'user':
+		get_user = getUserIDByEmail(where['key'])
+		if get_user['err'] != 0: return {'err': get_user['err']}
+		user_email = where['key']
+		where['key'] = get_user['user_id']
+
+	if  where['name'] == 'forum':
+		get_forum = getForumIDByShortname(where['key'])
+		if get_forum['err'] != 0: return {'err': get_forum['err']}
+		forum_short_name = where['key']
+		where['key'] = get_forum['user_id']
+
+	query = ("SELECT * FROM " + entity +\
+			" WHERE " + where['name'] + " = %s AND date >= %s " +\
+			" ORDER BY date " + order +\
+			" LIMIT " + str(limit))
+
+	get_cursor = Util.sendQuery(query, [where['key'], since])
+	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
+	cursor = get_cursor['cursor']
+	listEntity = Util.dictfetchall(cursor)
+
+	for ent in listEntity:
+		if entity == 'thread':
+			get_posts = getPostCountInThread(thread_id)
+			if get_posts['err'] != 0: return {'err': get_posts['err']}
+			posts = get_posts['posts']
+			ent['posts'] = posts
+		if  where['name'] != 'user':
+			get_user = getUserEmailByID(ent['user'])
+			if get_user['err'] != 0: return {'err': get_user['err']}
+			user_email = get_user['email']
+		if  where['name'] != 'forum':
+			get_forum = getShortnameByForumID(ent['forum'])
+			if get_forum['err'] != 0: return {'err': get_forum['err']}
+			forum_short_name = get_forum['short_name']
+
+		ent['user'] = user_email
+		ent['forum'] = forum_short_name
+		ent['points'] = ent['likes'] - ent['dislikes']
+		ent['date'] = ent['date'].strftime("%Y-%m-%d %H:%M:%S")
+	return {'err': 0, 'listEntity': listEntity}
+
+
+
+
+
+
+
+
+
+
 
