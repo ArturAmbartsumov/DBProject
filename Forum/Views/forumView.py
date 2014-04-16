@@ -25,3 +25,14 @@ def details(request):
 	forum = forum_details['forum']
 	
 	return HttpResponseJSONSuccess(forum)
+
+def listPosts(request):
+	if request.method != 'GET' : return HttpResponseJSONFailure("Method GET is expected")
+
+	request_data = request.GET
+
+	forum_listPosts = forumListPosts(request_data)
+	if forum_listPosts['err'] != 0: return HttpResponseJSONFailure(forum_listPosts['err'])
+	listPosts = forum_listPosts['listPosts']
+	
+	return HttpResponseJSONSuccess(listPosts)
