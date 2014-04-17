@@ -136,16 +136,10 @@ def threadListPosts(request_data):
 	return {'err': 0, 'listPosts': listPosts}
 
 def threadList(request_data):
-	print request_data
-	try: 
-		
-		if 'user' in request_data:
-			where = {'name': 'user', 'key': request_data['user']}
-
-		if 'forum' in request_data:
-			where = {'name': 'forum', 'key': request_data['forum']}
-	except KeyError as e:
-		return {'err': str(e) + ' argument not found'}
+	if 'user' in request_data:
+		where = {'name': 'user', 'key': request_data['user']}
+	if 'forum' in request_data:
+		where = {'name': 'forum', 'key': request_data['forum']}
 	limit = request_data.get('limit', 10000)
 	order = request_data.get('order', 'desc')
 	since = request_data.get('since', '0000-00-00 00:00:00')
@@ -154,7 +148,7 @@ def threadList(request_data):
 	if list_thread['err'] != 0: return {'err': list_thread['err']}
 	listThreads = list_thread['listEntity']
 
-	return {'err': 0, 'listThreads': listThreads}
+	return {'err': 0, 'listEntity': listThreads}
 
 def threadSubscribeOrUnsubscribe(request_data, option):
 	try:

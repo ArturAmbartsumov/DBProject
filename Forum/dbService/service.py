@@ -395,7 +395,7 @@ def getList(entity, where, options):
 		get_forum = getForumIDByShortname(where['key'])
 		if get_forum['err'] != 0: return {'err': get_forum['err']}
 		forum_short_name = where['key']
-		where['key'] = get_forum['user_id']
+		where['key'] = get_forum['forum_id']
 
 	query = ("SELECT * FROM " + entity +\
 			" WHERE " + where['name'] + " = %s AND date >= %s " +\

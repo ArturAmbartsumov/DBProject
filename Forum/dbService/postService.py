@@ -111,6 +111,21 @@ def postUpdate(request_data):
 
 	return {'err': 0, 'post': post}
 
+def postList(request_data):
+	if 'thread' in request_data:
+		where = {'name': 'thread', 'key': request_data['thread']}
+	if 'forum' in request_data:
+		where = {'name': 'forum', 'key': request_data['forum']}
+	limit = request_data.get('limit', 10000)
+	order = request_data.get('order', 'desc')
+	since = request_data.get('since', '0000-00-00 00:00:00')
+
+	list_post = Serv.getList('Posts', where, {'limit': limit, 'order': order, 'since': since})
+	if list_post['err'] != 0: return {'err': list_post['err']}
+	listPosts = list_post['listEntity']
+
+	return {'err': 0, 'listEntity': listPosts}
+
 def createNewPost(data):
 	get_cursor = Util.sendQuery("INSERT INTO Posts (date, message, isApproved, isHighlighted, isEdited, isSpam, isDeleted, parent, user, forum, thread) " +\
 						   "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",

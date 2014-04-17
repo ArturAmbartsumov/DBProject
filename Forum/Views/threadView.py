@@ -57,7 +57,7 @@ def list(request):
 
 	thread_list = threadList(request_data)
 	if thread_list['err'] != 0: return HttpResponseJSONFailure(thread_list['err'])
-	threads = thread_list['listThreads']
+	threads = thread_list['listEntity']
 	
 	return HttpResponseJSONSuccess(threads)
 

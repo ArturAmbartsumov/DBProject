@@ -167,7 +167,12 @@ print r.status_code
 #print r.text
 print r.json()
 
-
+payload = {'since': '2014-01-01 00:00:00', 'thread': '1', 'order': 'desc'}
+url = 'http://127.0.0.1:8000/post/list/'
+r = requests.get(url, params = payload)
+print r.status_code
+#print r.text
+print r.json()
 
 
 

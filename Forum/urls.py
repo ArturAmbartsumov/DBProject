@@ -41,11 +41,9 @@ urlpatterns = patterns('',
 	#post
 	url(r'^post/create/$', postView.create, name='postCreate'),
 	url(r'^post/details/$', postView.details, name='postDetails'),
-	#url(r'^post/list/$', postView.list, name='postList'),
+	url(r'^post/list/$', postView.list, name='postList'),
 	url(r'^post/remove/$', postView.remove, name='postRemove'),
 	url(r'^post/restore/$', postView.restore, name='postRestore'),
 	url(r'^post/update/$', postView.update, name='postUpdate'),
 	url(r'^post/vote/$', postView.vote, name='postVote'),
-
-
 )

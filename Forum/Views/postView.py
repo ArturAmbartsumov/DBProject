@@ -33,7 +33,7 @@ def list(request):
 
 	post_list = postList(request_data)
 	if post_list['err'] != 0: return HttpResponseJSONFailure(post_list['err'])
-	posts = post_list['list']
+	posts = post_list['listEntity']
 	
 	return HttpResponseJSONSuccess(posts)
 
