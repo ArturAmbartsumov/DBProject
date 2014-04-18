@@ -89,7 +89,7 @@ def postVote(request_data):
 	if vote == 1: get_cursor = Util.sendQuery("UPDATE Posts SET likes = likes + 1 WHERE id = %s", [post_id])
 	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
 
-	get_postDetails = Serv.getPostDetailsByID(post_id)
+	get_postDetails = Serv.getPostDetailsByID(post_id, [])
 	if get_postDetails['err'] != 0: return {'err': get_postDetails['err']}
 	post = get_postDetails['post']
 

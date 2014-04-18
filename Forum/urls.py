@@ -1,11 +1,15 @@
 from django.conf.urls import patterns, url
 
+from Forum import views
 from Views import userView
 from Views import forumView
 from Views import threadView
 from Views import postView
 
 urlpatterns = patterns('',
+	#clear db
+	url(r'^clear$', views.clear, name='clear'),
+
 	#user
     url(r'^user/create/$', userView.create, name='userCreate'),
     url(r'^user/details/$', userView.details, name='userDetails'),

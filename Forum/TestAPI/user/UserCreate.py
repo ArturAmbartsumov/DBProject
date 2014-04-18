@@ -1,6 +1,6 @@
 import json
 import requests
-url = 'http://127.0.0.1:8000/db/api/user/create/'
+url = 'http://195.19.44.156/db/api/user/create/'
 payload = {'username': 'sdfg', 'about': 'hdf', 'isAnonymous': False, 'name': 'sdf', 'email': 'Artur@mail.ru'}
 r = requests.post(url, data=json.dumps(payload))
 print r.status_code

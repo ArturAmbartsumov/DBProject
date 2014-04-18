@@ -11,7 +11,7 @@ def getFollowers(data):
 						   ") AS T " +\
 						   "WHERE Users.id = T.follower_id " +\
 						   "ORDER BY Users.name " + data['order'] +\
-						   " LIMIT %s", [data['user_id'], data['since_id'], data['limit']])
+						   " LIMIT " + str(data['limit']), [data['user_id'], data['since_id']])
 	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
 	cursor = get_cursor['cursor']
 	return {'err': 0, 'followList': Util.dictfetchall(cursor)}
@@ -23,7 +23,7 @@ def getFollowing(data):
 						   ") AS T " +\
 						   "WHERE Users.id = T.follower_id " +\
 						   "ORDER BY Users.name " + data['order'] +\
-						   " LIMIT %s", [data['user_id'], data['since_id'], data['limit']])
+						   " LIMIT " + str(data['limit']), [data['user_id'], data['since_id']])
 	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
 	cursor = get_cursor['cursor']
 	return {'err': 0, 'followList': Util.dictfetchall(cursor)}
@@ -252,8 +252,8 @@ def getListPosts(entity, options):
 			"ON Users.user_id = Posts.user " +\
 			"WHERE " + entity['field'] + " = %s AND Posts.date >= %s " +\
 			"ORDER BY date " + order +\
-			" LIMIT %s")
-	get_cursor = Util.sendQuery(query, [entity['key'], since, limit])
+			" LIMIT " + str(limit))
+	get_cursor = Util.sendQuery(query, [entity['key'], since])
 	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
 	cursor = get_cursor['cursor']
 	listPosts = Util.dictfetchall(cursor)

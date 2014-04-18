@@ -96,7 +96,7 @@ def threadVote(request_data):
 	if vote == 1: get_cursor = Util.sendQuery("UPDATE Threads SET likes = likes + 1 WHERE id = %s", [thread_id])
 	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
 
-	get_threadDetails = Serv.getThreadDetailsByID(thread_id)
+	get_threadDetails = Serv.getThreadDetailsByID(thread_id, [])
 	if get_threadDetails['err'] != 0: return {'err': get_threadDetails['err']}
 	thread = get_threadDetails['thread']
 
@@ -113,7 +113,7 @@ def threadUpdate(request_data):
 	get_cursor = Util.sendQuery("UPDATE Threads SET message = %s, slug = %s WHERE id = %s", [message, slug, thread_id])
 	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
 
-	get_threadDetails = Serv.getThreadDetailsByID(thread_id)
+	get_threadDetails = Serv.getThreadDetailsByID(thread_id, [])
 	if get_threadDetails['err'] != 0: return {'err': get_threadDetails['err']}
 	thread = get_threadDetails['thread']
 

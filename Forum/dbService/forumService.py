@@ -54,7 +54,8 @@ def forumListPosts(request_data):
 		forum_short_name = request_data['forum']
 	except KeyError as e:
 		return {'err': str(e) + ' argument not found'}
-	related = request_data.getlist('related', [])
+	related = request_data.getlist('related', [[]])
+	related = related[0]
 	limit = request_data.get('limit', 10000)
 	order = request_data.get('order', 'desc')
 	since = request_data.get('since', '0000-00-00 00:00:00')
@@ -84,7 +85,8 @@ def forumListThreads(request_data):
 		forum_short_name = request_data['forum']
 	except KeyError as e:
 		return {'err': str(e) + ' argument not found'}
-	related = request_data.getlist('related', [])
+	related = request_data.getlist('related', [[]])
+	related = related[0]
 	limit = request_data.get('limit', 10000)
 	order = request_data.get('order', 'desc')
 	since = request_data.get('since', '0000-00-00 00:00:00')
