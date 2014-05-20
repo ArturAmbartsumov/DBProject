@@ -2,3 +2,5 @@
 forum-master.pid
 
 forum.log
+
+*.pyc
