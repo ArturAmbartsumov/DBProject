@@ -4,30 +4,6 @@ import time
 from django.db import IntegrityError
 from Forum.dbService import functions as Util
 
-def getFollowers(data):
-	get_cursor = Util.sendQuery("SELECT id, username, email, name, about, isAnonymous " +\
-						   "FROM Users, (" +\
-						       "SELECT follower_id FROM Followers WHERE user_id = %s AND follower_id >= %s" +\
-						   ") AS T " +\
-						   "WHERE Users.id = T.follower_id " +\
-						   "ORDER BY Users.name " + data['order'] +\
-						   " LIMIT " + str(data['limit']), [data['user_id'], data['since_id']])
-	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
-	cursor = get_cursor['cursor']
-	return {'err': 0, 'followList': Util.dictfetchall(cursor)}
-
-def getFollowing(data):
-	get_cursor = Util.sendQuery("SELECT id, username, email, name, about, isAnonymous " +\
-						   "FROM Users, (" +\
-						       "SELECT follower_id FROM Followers WHERE user_id = %s AND follower_id >= %s" +\
-						   ") AS T " +\
-						   "WHERE Users.id = T.follower_id " +\
-						   "ORDER BY Users.name " + data['order'] +\
-						   " LIMIT " + str(data['limit']), [data['user_id'], data['since_id']])
-	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
-	cursor = get_cursor['cursor']
-	return {'err': 0, 'followList': Util.dictfetchall(cursor)}
-
 def getFollowersEmails(user_id):
 	get_cursor = Util.sendQuery("SELECT Users.email AS emails FROM Users, " +\
 						   "(SELECT follower_id FROM Followers WHERE user_id = %s) AS T " +\

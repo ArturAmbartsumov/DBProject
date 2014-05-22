@@ -97,8 +97,8 @@ def userFollowList(request_data, followersOrFollowing):
 
 	data = {'user_id': user_id, 'limit': limit, 'order': order, 'since_id': since_id}
 	
-	if followersOrFollowing == 'followers': get_follow = Serv.getFollowers(data)
-	if followersOrFollowing == 'following': get_follow = Serv.getFollowing(data)
+	if followersOrFollowing == 'followers': get_follow = getFollowers(data)
+	if followersOrFollowing == 'following': get_follow = getFollowing(data)
 	if get_follow['err'] != 0: return {'err': get_follow['err']}
 	followList = get_follow['followList']
 	
@@ -108,6 +108,30 @@ def userFollowList(request_data, followersOrFollowing):
 		user = get_fullUser['user']
 
 	return {'err': 0, 'followList': followList}
+
+def getFollowers(data):
+	get_cursor = Util.sendQuery("SELECT id, username, email, name, about, isAnonymous " +\
+						   "FROM Users, (" +\
+						       "SELECT follower_id FROM Followers WHERE user_id = %s AND follower_id >= %s" +\
+						   ") AS T " +\
+						   "WHERE Users.id = T.follower_id " +\
+						   "ORDER BY Users.name " + data['order'] +\
+						   " LIMIT " + str(data['limit']), [data['user_id'], data['since_id']])
+	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
+	cursor = get_cursor['cursor']
+	return {'err': 0, 'followList': Util.dictfetchall(cursor)}
+
+def getFollowing(data):
+	get_cursor = Util.sendQuery("SELECT id, username, email, name, about, isAnonymous " +\
+						   "FROM Users, (" +\
+						       "SELECT user_id FROM Followers WHERE follower_id = %s AND user_id >= %s" +\
+						   ") AS T " +\
+						   "WHERE Users.id = T.user_id " +\
+						   "ORDER BY Users.name " + data['order'] +\
+						   " LIMIT " + str(data['limit']), [data['user_id'], data['since_id']])
+	if get_cursor['err'] != 0: return {'err': get_cursor['err']}
+	cursor = get_cursor['cursor']
+	return {'err': 0, 'followList': Util.dictfetchall(cursor)}
 
 def userListPosts(request_data):
 	try: 
